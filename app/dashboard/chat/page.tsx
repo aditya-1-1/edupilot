@@ -7,6 +7,7 @@ import {
   ApiRequestError,
   apiJson,
   getOrCreateChatSessionId,
+  getOrCreateUserId,
   resetChatSession,
 } from '@/lib/api'
 import { Loader2 } from 'lucide-react'
@@ -29,7 +30,8 @@ export default function ChatPage() {
     if (!trimmed || loading) return
     setError(null)
     const userMsg: Msg = { role: 'user', content: trimmed, at: Date.now() }
-    setMessages((m) => [...m, userMsg])
+    const currentMessages = [...messages, userMsg]
+    setMessages(currentMessages)
     setLoading(true)
     try {
       const data = await apiJson<{
@@ -41,6 +43,8 @@ export default function ChatPage() {
         body: JSON.stringify({
           message: trimmed,
           sessionId: sessionRef.current || undefined,
+          guestId: getOrCreateUserId(),
+          recentMessages: currentMessages.map(({ role, content }) => ({ role, content })),
         }),
       })
       sessionRef.current = data.sessionId

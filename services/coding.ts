@@ -44,8 +44,11 @@ function normalizeAnalysis(raw: Record<string, unknown>): CodingAnalysis {
   }
 }
 
-async function buildPastMistakesContext(supabase: SupabaseClient, userId: string): Promise<string> {
-  if (userId === 'guest') return ''
+async function buildPastMistakesContext(
+  supabase: SupabaseClient | undefined,
+  userId?: string,
+): Promise<string> {
+  if (!supabase || !userId || userId === 'guest') return ''
   const recent = await listMistakes(supabase, userId, 15)
   if (recent.length === 0) return ''
   return recent
@@ -54,7 +57,7 @@ async function buildPastMistakesContext(supabase: SupabaseClient, userId: string
 }
 
 export async function analyzeCodingSubmission(params: {
-  supabase: SupabaseClient
+  supabase?: SupabaseClient
   userId: string
   problem: CodingProblem
   code: string

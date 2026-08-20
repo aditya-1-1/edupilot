@@ -13,30 +13,29 @@ const bodySchema = z.object({
   problemId: z.string().min(1),
   code: z.string().max(64000),
   language: z.enum(['python', 'cpp']).optional(),
+  guestId: z.string().optional(),
 })
 
 export async function POST(req: Request) {
   try {
     const auth = await optionalSessionUserId()
-
     const json = await req.json()
     const parsed = bodySchema.parse(json)
     const problem = getProblemById(parsed.problemId)
     if (!problem) throw new ApiError('Unknown problem', 404)
+
     const userId = auth.userId
-    const { supabase } = auth
     const language = parsed.language ?? 'python'
     const analysis = await analyzeCodingSubmission({
-      supabase,
-      userId: userId || 'guest',
+      supabase: userId ? auth.supabase : undefined,
+      userId: userId ?? 'guest',
       problem,
       code: parsed.code,
       language,
     })
 
     if (userId) {
-      // Only persist and record for authenticated users
-      await persistCodingAnalysis(supabase, {
+      await persistCodingAnalysis(auth.supabase, {
         userId,
         problem,
         code: parsed.code,
@@ -44,7 +43,7 @@ export async function POST(req: Request) {
         language,
       })
 
-      const submission = await recordSubmission(supabase, {
+      const submission = await recordSubmission(auth.supabase, {
         userId,
         problemId: parsed.problemId,
         code: parsed.code,
@@ -68,20 +67,19 @@ export async function POST(req: Request) {
         },
         problemId: problem.id,
       })
-    } else {
-      // For guest, return analysis without saving
-      return jsonOk({
-        analysis: {
-          isCorrect: analysis.isCorrect,
-          score: analysis.score,
-          feedback: analysis.feedback,
-          hint: analysis.hint,
-          mistakePatterns: analysis.mistakePatterns,
-          weakTopics: analysis.weakTopics,
-        },
-        problemId: problem.id,
-      })
     }
+
+    return jsonOk({
+      analysis: {
+        isCorrect: analysis.isCorrect,
+        score: analysis.score,
+        feedback: analysis.feedback,
+        hint: analysis.hint,
+        mistakePatterns: analysis.mistakePatterns,
+        weakTopics: analysis.weakTopics,
+      },
+      problemId: problem.id,
+    })
   } catch (e) {
     return jsonError(e)
   }

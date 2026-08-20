@@ -27,7 +27,7 @@ export function getLlmConfig() {
   if (provider === 'groq') {
     const apiKey = env.GROQ_API_KEY
     const baseURL = env.OPENAI_BASE_URL ?? 'https://api.groq.com/openai/v1'
-    const model = env.LLM_MODEL ?? 'llama-3.3-70b-versatile'
+    const model = env.LLM_MODEL ?? 'openai/gpt-oss-120b'
     return { provider, apiKey, baseURL, model }
   }
   const apiKey = env.OPENAI_API_KEY

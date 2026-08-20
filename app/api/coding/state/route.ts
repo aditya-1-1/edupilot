@@ -44,7 +44,7 @@ export async function GET(req: Request) {
       // For guest, return empty state
       return jsonOk({
         patterns: [],
-        mistakesByTopic: {},
+        mistakesByTopic: [],
         progress: [],
         recentMistakes: [],
       })

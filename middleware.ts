@@ -60,24 +60,37 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Allow access to chat, practice, study-plan, and stats without auth
-  const publicDashboardPaths = ['/dashboard/chat', '/dashboard/practice', '/dashboard/study-plan', '/dashboard/stats']
-  const isPublicDashboard = publicDashboardPaths.some(path => pathname.startsWith(path))
+  const publicDashboardPaths = [
+    '/dashboard/chat',
+    '/dashboard/practice',
+    '/dashboard/study-plan',
+    '/dashboard/stats',
+  ]
+  const isPublicDashboardPath = publicDashboardPaths.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  )
 
-  // Protect dashboard routes (except public ones)
-  if (pathname.startsWith('/dashboard') && !session && !isPublicDashboard) {
+  if (pathname.startsWith('/dashboard') && !isPublicDashboardPath && !session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Allow access to certain API routes without auth
-  const publicApiPaths = ['/api/chat', '/api/coding', '/api/study-plan', '/api/stats', '/api/dashboard/stats']
-  const isPublicApi = publicApiPaths.some(path => pathname.startsWith(path))
+  const publicApiPaths = [
+    '/api/chat',
+    '/api/coding',
+    '/api/study-plan',
+    '/api/stats',
+    '/api/dashboard/stats',
+  ]
+  const isPublicApiPath = publicApiPaths.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  )
 
-  // Protect API routes (except auth and public ones)
-  if (pathname.startsWith('/api') &&
-      !pathname.startsWith('/api/auth') &&
-      !isPublicApi &&
-      !session) {
+  if (
+    pathname.startsWith('/api') &&
+    !pathname.startsWith('/api/auth') &&
+    !isPublicApiPath &&
+    !session
+  ) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { PracticeCodeEditor } from '@/components/practice-code-editor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ApiRequestError, apiJson } from '@/lib/api'
+import { ApiRequestError, apiJson, getOrCreateUserId } from '@/lib/api'
 import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -90,15 +90,29 @@ export default function PracticePage() {
 
   const loadAll = useCallback(async () => {
     setError(null)
-    const [probs, state] = await Promise.all([
-      apiJson<{ problems: CodingProblem[] }>('/api/coding/problems'),
-      apiJson<{
+    const probs = await apiJson<{ problems: CodingProblem[] }>('/api/coding/problems')
+    let state = {
+      patterns: [] as Pattern[],
+      mistakesByTopic: [] as TopicCount[],
+      progress: [] as ProblemProgress[],
+      recentMistakes: [] as Mistake[],
+    }
+
+    try {
+      state = await apiJson<{
         patterns: Pattern[]
         mistakesByTopic: TopicCount[]
         progress: ProblemProgress[]
         recentMistakes: Mistake[]
-      }>('/api/coding/state'),
-    ])
+      }>('/api/coding/state')
+    } catch (e) {
+      if (e instanceof ApiRequestError && e.status === 401) {
+        // Guest mode: no saved state available
+      } else {
+        throw e
+      }
+    }
+
     setProblems(probs.problems)
     setPatterns(state.patterns)
     setMistakesByTopic(state.mistakesByTopic)
@@ -170,6 +184,7 @@ export default function PracticePage() {
           problemId: selected.id,
           code,
           language: practiceLang,
+          guestId: getOrCreateUserId(),
         }),
       })
       setLastAnalysis(data.analysis)
